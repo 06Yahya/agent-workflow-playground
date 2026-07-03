@@ -125,7 +125,7 @@ wrangler.jsonc                   # Worker config
 
 ```bash
 # Clone
-git clone https://github.com/yahyashihabe/agent-workflow-playground
+git clone https://github.com/06Yahya/agent-workflow-playground
 cd agent-workflow-playground
 
 # Install (skip sharp native build — not needed for Workers)

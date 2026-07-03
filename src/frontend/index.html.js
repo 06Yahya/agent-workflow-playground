@@ -209,7 +209,7 @@ export const landingPage = `<!DOCTYPE html>
   </section>
 </main>
 <footer>
-  <a href="https://github.com/yahyashihabe/agent-workflow-playground">GitHub</a>
+  <a href="https://github.com/06Yahya/agent-workflow-playground">GitHub</a>
   &mdash; Built with Cloudflare Workers + Workers AI (free tier)
 </footer>
 <script>
