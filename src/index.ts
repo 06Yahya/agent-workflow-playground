@@ -1,86 +1,89 @@
 /**
- * Agent Workflow Playground — Cloudflare Worker
- *
- * Routes:
- *   GET  /               — Landing page / API docs
- *   POST /api/prospect-research  — Run prospect research agent
- *   POST /api/crm-enrichment     — Run CRM enrichment agent (coming soon)
- *   POST /api/follow-up-draft    — Run follow-up draft agent (coming soon)
+ * Agent Workflow Playground
+ * Public Cloudflare Worker demo for operational agent workflows.
  */
 
-import { runProspectResearch } from './workflows/prospect-research';
+import { landingPage } from './frontend/landing-page';
 import { runCrmEnrichment } from './workflows/crm-enrichment';
 import { runFollowUpDraft } from './workflows/follow-up-draft';
-import { landingPage } from './frontend/index.html.js';
+import { runProspectResearch } from './workflows/prospect-research';
+
+interface Env {
+  AI: Ai;
+}
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const method = request.method;
 
-    // CORS headers for all responses
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    };
-
-    // Handle CORS preflight
-    if (method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
 
     try {
-      // Static landing page
-      if (method === 'GET' && (url.pathname === '/' || url.pathname === '')) {
+      if (request.method === 'GET' && url.pathname === '/') {
         return new Response(landingPage, {
-          headers: { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders },
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'public, max-age=60',
+          },
         });
       }
 
-      // API routes
-      if (method === 'POST' && url.pathname === '/api/prospect-research') {
-        const body = await request.json() as { url?: string };
-        if (!body.url) {
-          return jsonResponse({ error: 'Missing required field: url' }, 400, corsHeaders);
-        }
+      if (request.method === 'GET' && url.pathname === '/api/health') {
+        return jsonResponse({ ok: true, service: 'agent-workflow-playground', workflows: ['prospect-research', 'crm-enrichment', 'follow-up-draft'] });
+      }
+
+      if (request.method !== 'POST') {
+        return jsonResponse({ error: 'Not found' }, 404);
+      }
+
+      const body = await parseJson(request);
+
+      if (url.pathname === '/api/prospect-research') {
+        if (!isRecord(body) || typeof body.url !== 'string') return jsonResponse({ error: 'Missing required field: url' }, 400);
         const result = await runProspectResearch(env.AI, { url: body.url });
-        return jsonResponse(result, result.success ? 200 : 422, corsHeaders);
+        return jsonResponse(result, result.success ? 200 : 422);
       }
 
-      if (method === 'POST' && url.pathname === '/api/crm-enrichment') {
-        const body = await request.json() as { company?: string; url?: string };
-        if (!body.company) {
-          return jsonResponse({ error: 'Missing required field: company' }, 400, corsHeaders);
-        }
-        const result = await runCrmEnrichment(env.AI, body as { company: string; url?: string });
-        return jsonResponse(result, 200, corsHeaders);
+      if (url.pathname === '/api/crm-enrichment') {
+        if (!isRecord(body) || typeof body.company !== 'string') return jsonResponse({ error: 'Missing required field: company' }, 400);
+        const result = await runCrmEnrichment(env.AI, { company: body.company, url: typeof body.url === 'string' ? body.url : undefined });
+        return jsonResponse(result, result.success ? 200 : 422);
       }
 
-      if (method === 'POST' && url.pathname === '/api/follow-up-draft') {
-        const body = await request.json() as { thread?: string };
-        if (!body.thread) {
-          return jsonResponse({ error: 'Missing required field: thread' }, 400, corsHeaders);
-        }
-        const result = await runFollowUpDraft(env.AI, { thread: body.thread });
-        return jsonResponse(result, 200, corsHeaders);
+      if (url.pathname === '/api/follow-up-draft') {
+        if (!isRecord(body) || typeof body.thread !== 'string') return jsonResponse({ error: 'Missing required field: thread' }, 400);
+        const result = await runFollowUpDraft(env.AI, { thread: body.thread, offer: typeof body.offer === 'string' ? body.offer : undefined });
+        return jsonResponse(result, result.success ? 200 : 422);
       }
 
-      // 404
-      return new Response(JSON.stringify({ error: 'Not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Internal error';
-      return jsonResponse({ error: message }, 500, corsHeaders);
+      return jsonResponse({ error: 'Not found' }, 404);
+    } catch (error) {
+      return jsonResponse({ error: error instanceof Error ? error.message : 'Internal error' }, 500);
     }
   },
 } satisfies ExportedHandler<Env>;
 
-function jsonResponse(data: unknown, status: number, cors: Record<string, string>): Response {
+async function parseJson(request: Request): Promise<unknown> {
+  try {
+    return await request.json();
+  } catch {
+    throw new Error('Request body must be valid JSON');
+  }
+}
+
+function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data, null, 2), {
     status,
-    headers: { 'Content-Type': 'application/json', ...cors },
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
   });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

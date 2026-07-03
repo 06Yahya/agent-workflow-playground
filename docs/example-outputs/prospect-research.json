@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "workflow": "prospect-research",
+  "output": {
+    "report": "# Prospect audit\n\n## What the business appears to sell\nExample output from the live workflow. Run the deployed demo for current model output.\n\n## Conversion leaks\n- CTA clarity can be checked from the scraped page.\n- Missing contact details are surfaced in evidence.\n\n## Highest leverage fixes\n- Make the primary action visible above the fold.\n- Add trust signals near the first CTA."
+  },
+  "trace": [
+    { "id": "scrape", "label": "Scrape target page", "status": "complete" },
+    { "id": "reason", "label": "Analyse conversion evidence", "status": "complete" },
+    { "id": "package", "label": "Package audit", "status": "complete" }
+  ]
+}
