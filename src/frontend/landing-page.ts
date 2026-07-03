@@ -41,7 +41,7 @@ function renderGeneric(value){return '<div class="result-card"><h4>Result</h4><d
 function kv(label,value){return '<div class="kv"><b>'+escapeHtml(label)+'</b><span>'+escapeHtml(value==null||value===''?'Not returned':value)+'</span></div>';}
 function pills(items){if(!items.length)return '<p>No flags returned.</p>';return '<div class="pill-row">'+items.map(function(item){return '<span class="pill">'+escapeHtml(item)+'</span>';}).join('')+'</div>';}
 function firstMeaningfulLine(text){return cleanMarkdown(text).split(NL).find(function(line){return line.trim().length>12;})||text;}
-function cleanMarkdown(text){const tick=String.fromCharCode(96);const fenced=new RegExp(tick+'{3}[\\s\\S]*?'+tick+'{3}','g');const inlineCode=new RegExp(tick,'g');const excessiveBreaks=new RegExp(NL+'{3,}','g');return String(text||'').replace(fenced,'').replace(/^#{1,6}\s*/gm,'').replace(/^[-*]\s+/gm,'• ').replace(/\*\*/g,'').replace(inlineCode,'').replace(excessiveBreaks,NL+NL).trim();}
+function cleanMarkdown(text){const tick=String.fromCharCode(96);const fenced=new RegExp(tick+'{3}[\\s\\S]*?'+tick+'{3}','g');const inlineCode=new RegExp(tick,'g');const headingPrefix=new RegExp('^#{1,6}\\s*','gm');const listPrefix=new RegExp('^[-*]\\s+','gm');const excessiveBreaks=new RegExp(NL+'{3,}','g');return String(text||'').replace(fenced,'').replace(headingPrefix,'').replace(listPrefix,'• ').split('**').join('').replace(inlineCode,'').replace(excessiveBreaks,NL+NL).trim();}
 renderForm();
 </script>
 </body>

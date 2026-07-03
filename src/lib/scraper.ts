@@ -13,6 +13,8 @@ export interface ScrapeResult {
   status?: number;
 }
 
+const MAX_CONTACT_TEXT = 12000;
+
 export function normalizeUrl(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) throw new Error('URL is required');
@@ -58,7 +60,7 @@ export async function scrapePage(inputUrl: string): Promise<ScrapeResult> {
       description: extractMetaDescription(html),
       content,
       links: extractLinks(html, base.finalUrl).slice(0, 30),
-      contacts: extractContacts(html + '\n' + content),
+      contacts: extractContacts(html, content),
     };
   } catch (error) {
     return { ...base, error: error instanceof Error ? error.message : 'Unknown fetch error' };
@@ -117,10 +119,43 @@ export function extractLinks(html: string, baseUrl: string): string[] {
   return Array.from(links);
 }
 
-export function extractContacts(text: string): { phones: string[]; emails: string[] } {
-  const emails = Array.from(new Set((text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []).map((value) => value.toLowerCase()))).slice(0, 8);
-  const phones = Array.from(new Set((text.match(/(?:\+?\d[\d\s().-]{7,}\d)/g) || []).map((value) => value.replace(/\s+/g, ' ').trim()))).slice(0, 8);
-  return { phones, emails };
+export function extractContacts(html: string, cleanedText = ''): { phones: string[]; emails: string[] } {
+  const emailMatches = new Set<string>();
+  const phoneMatches = new Set<string>();
+
+  for (const match of html.matchAll(/href=["']mailto:([^"'#?]+)[^"']*["']/gi)) {
+    const email = decodeURIComponentSafe(match[1]).trim().toLowerCase();
+    if (email) emailMatches.add(email);
+  }
+
+  for (const match of html.matchAll(/href=["']tel:([^"'#?]+)[^"']*["']/gi)) {
+    const phone = normalizePhone(decodeURIComponentSafe(match[1]));
+    if (phone) phoneMatches.add(phone);
+  }
+
+  const text = cleanedText.slice(0, MAX_CONTACT_TEXT);
+  for (const email of text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []) {
+    emailMatches.add(email.toLowerCase());
+  }
+
+  for (const phone of text.match(/(?:\+?\d[\d\s().-]{7,}\d)/g) || []) {
+    const normalized = normalizePhone(phone);
+    if (normalized) phoneMatches.add(normalized);
+  }
+
+  return { phones: Array.from(phoneMatches).slice(0, 8), emails: Array.from(emailMatches).slice(0, 8) };
+}
+
+function normalizePhone(value: string): string {
+  return value.replace(/%20/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function decodeURIComponentSafe(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function decodeEntities(input: string): string {
