@@ -62,7 +62,7 @@ function heuristicDraft(thread: string, offer?: string): FollowUpDraftOutput {
   const negative = /not interested|unsubscribe|no thanks|nej tack|stop/.test(lower);
   const question = /\?|price|cost|pricing|pris|hur mycket/.test(lower);
   const temperature: FollowUpDraftOutput['temperature'] = negative ? 'dead' : positive ? 'hot' : question ? 'warm' : 'cold';
-  const offerLine = offer || 'AI agents and automation for SMBs';
+  const offerLine = englishOfferLine(offer);
 
   return {
     temperature,
@@ -72,4 +72,11 @@ function heuristicDraft(thread: string, offer?: string): FollowUpDraftOutput {
     nextAction: temperature === 'dead' ? 'Do not follow up unless they re-engage.' : temperature === 'hot' ? 'Offer two specific call times.' : 'Send one concise follow-up with a concrete example.',
     riskFlags: temperature === 'cold' ? ['No explicit reply signal, keep it short.'] : [],
   };
+}
+
+function englishOfferLine(offer?: string): string {
+  if (!offer) return 'AI agents and automation for SMBs';
+  const lower = offer.toLowerCase();
+  if (/\b(och|för|med|pris|uppsättning|kund|kunder)\b/.test(lower)) return 'AI receptionist and lead capture automation';
+  return offer;
 }

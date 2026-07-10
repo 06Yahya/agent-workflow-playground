@@ -4,12 +4,16 @@
   "description": "Employer-facing proof repo for practical agent workflows: prospect audits, CRM enrichment, and follow-up drafting on Cloudflare Workers AI.",
   "type": "module",
   "private": false,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "types": "wrangler types",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
+    "verify": "npm run typecheck && npm test",
     "verify:remote": "node scripts/verify-remote.mjs https://agent-workflow-playground.yahya-shehabi01.workers.dev"
   },
   "keywords": [

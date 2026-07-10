@@ -117,13 +117,14 @@ wrangler.jsonc                     # Cloudflare Worker configuration
 
 ## Run locally
 
+Requirements: Node >= 20. The `.nvmrc` file pins the exact major — `nvm use` picks it.
+
 ```bash
 git clone https://github.com/06Yahya/agent-workflow-playground.git
 cd agent-workflow-playground
-npm install --ignore-scripts
-npm run types
-npm run typecheck
-npm test
+nvm use                   # if using nvm
+npm ci --ignore-scripts   # clean install (avoids sharp build issues on macOS)
+npm run verify            # runs typecheck and tests
 npm run dev
 ```
 
